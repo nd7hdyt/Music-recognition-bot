@@ -123,6 +123,45 @@ class MusicRecognitionService:
         return ""
 
     async def download_full_song(self, title: str, artist: str) -> str | None:
+        import aiohttp
+        import uuid
+
+        cobalt_url = os.getenv("COBALT_API_URL", "").strip().rstrip("/")
+
+        if cobalt_url:
+            try:
+                query = f"{artist} {title} official"
+                search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
+
+                headers = {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                }
+                payload = {
+                    "url": search_url,
+                    "downloadMode": "audio",
+                    "audioFormat": "mp3",
+                }
+
+                timeout = aiohttp.ClientTimeout(total=30)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.post(f"{cobalt_url}/", json=payload, headers=headers) as resp:
+                        if resp.status == 200:
+                            result = await resp.json()
+                            download_url = result.get("url")
+                            if download_url:
+                                filepath = str(TEMP_DIR / f"cobalt_{uuid.uuid4().hex[:8]}.mp3")
+                                async with session.get(download_url) as dl_resp:
+                                    if dl_resp.status == 200:
+                                        with open(filepath, "wb") as f:
+                                            f.write(await dl_resp.read())
+                                        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                                            logger.info(f"Cobalt downloaded: {filepath}")
+                                            return filepath
+                        logger.warning(f"Cobalt failed: {resp.status}")
+            except Exception as e:
+                logger.warning(f"Cobalt download failed: {e}")
+
         try:
             import yt_dlp
 
