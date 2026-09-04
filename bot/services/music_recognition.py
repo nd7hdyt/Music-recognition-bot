@@ -18,78 +18,7 @@ class MusicRecognitionService:
     def __init__(self):
         self.api_key = MUSIC_API_KEY
 
-    async def recognize_with_shazam(self, file_path: str) -> SongData | None:
-        try:
-            from shazamio import Shazam
-            shazam = Shazam()
-            result = await shazam.recognize(file_path)
-
-            if not result or "track" not in result:
-                return None
-
-            track = result["track"]
-            title = track.get("title", "")
-            artist = track.get("subtitle", "")
-
-            if not title or not artist:
-                return None
-
-            album = ""
-            release_date = ""
-            genre = ""
-            if "sections" in track:
-                for section in track["sections"]:
-                    if section.get("type") == "SONG":
-                        for meta in section.get("metadata", []):
-                            if meta.get("title") == "Album":
-                                album = meta.get("text", "")
-                            elif meta.get("title") == "Released":
-                                release_date = meta.get("text", "")
-                            elif meta.get("title") == "Label":
-                                pass
-                        break
-
-            if "genres" in track:
-                genre = track["genres"].get("primary", "")
-
-            album_art = ""
-            if "images" in track:
-                album_art = track["images"].get("coverarthq", "") or track["images"].get("coverart", "")
-
-            preview_url = ""
-            if "hub" in track and "actions" in track["hub"]:
-                for action in track["hub"]["actions"]:
-                    if action.get("type") == "uri" and "audio" in action.get("uri", ""):
-                        preview_url = action["uri"]
-                        break
-
-            youtube_url = ""
-            isrc = track.get("isrc", "")
-
-            logger.info(f"Shazam recognized: {title} by {artist}")
-
-            return SongData(
-                title=title,
-                artist=artist,
-                album=album,
-                release_date=release_date,
-                genre=genre,
-                duration=0,
-                preview_url=preview_url,
-                youtube_url=youtube_url,
-                album_art=album_art,
-                provider="shazam",
-            )
-
-        except Exception as e:
-            logger.warning(f"Shazam recognition failed: {e}")
-            return None
-
     async def recognize_file(self, file_path: str) -> SongData | None:
-        shazam_result = await self.recognize_with_shazam(file_path)
-        if shazam_result:
-            return shazam_result
-
         if not self.api_key:
             logger.error("Audd API key not configured")
             return None
