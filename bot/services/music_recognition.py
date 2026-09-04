@@ -138,11 +138,16 @@ class MusicRecognitionService:
                 "quiet": True,
                 "no_warnings": True,
                 "socket_timeout": 10,
-                "retries": 2,
+                "retries": 3,
                 "geo_bypass": True,
                 "no_check_certificates": True,
                 "ignoreerrors": True,
                 "noplaylist": True,
+                "extractor_args": {"youtube": {"skip": ["dash"]}},
+                "http_headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
             }
 
             loop = asyncio.get_event_loop()
