@@ -33,9 +33,12 @@ class MusicRecognitionService:
                 timeout = aiohttp.ClientTimeout(total=20)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.post(AUDD_API_URL, data=data) as resp:
+                        import json
+                        result_text = await resp.text()
+                        logger.info(f"Audd response status: {resp.status}")
+                        logger.info(f"Audd response: {result_text[:500]}")
                         if resp.status == 200:
-                            import json
-                            result = json.loads(await resp.text())
+                            result = json.loads(result_text)
                             if result.get("result"):
                                 return SongData.from_audd(result)
                         return None
