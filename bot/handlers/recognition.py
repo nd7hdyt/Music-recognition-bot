@@ -440,30 +440,7 @@ async def download_preview(url: str, filename: str) -> str | None:
     return None
 
 
-def has_embedded_art(audio_path: str) -> bool:
-    try:
-        if audio_path.endswith(".m4a") or audio_path.endswith(".aac"):
-            from mutagen.mp4 import MP4
-            audio = MP4(audio_path)
-            return "covr" in audio and len(audio["covr"]) > 0
-        elif audio_path.endswith(".mp3"):
-            from mutagen.mp3 import MP3
-            from mutagen.id3 import ID3, APIC
-            audio = MP3(audio_path, ID3=ID3)
-            if audio.tags:
-                for tag in audio.tags.values():
-                    if isinstance(tag, APIC):
-                        return True
-    except Exception as e:
-        logger.warning(f"Error checking embedded art: {e}")
-    return False
-
-
 def embed_artwork(audio_path: str, art_url: str):
-    if has_embedded_art(audio_path):
-        logger.info("Audio already has embedded artwork, skipping")
-        return
-
     try:
         import requests
         from mutagen.mp3 import MP3
