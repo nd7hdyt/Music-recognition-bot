@@ -151,7 +151,6 @@ async def handle_media(message: Message):
                                 caption=caption,
                                 reply_markup=kb,
                                 parse_mode="Markdown",
-                                thumbnail=song_data.album_art if song_data.album_art else None,
                             )
                             await cleanup_file(filepath)
                     except Exception as e:
