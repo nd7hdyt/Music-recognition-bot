@@ -123,11 +123,6 @@ async def handle_media(message: Message):
 
                 async def _send_audio():
                     try:
-                        if not song_data.album_art or "t.me" in song_data.album_art:
-                            fallback = await get_album_art_fallback(song_data.title, song_data.artist)
-                            if fallback:
-                                song_data.album_art = fallback
-
                         filepath = await recognition_service.download_full_song(song_data.title, song_data.artist)
 
                         if filepath:
