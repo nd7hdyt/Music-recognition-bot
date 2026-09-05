@@ -18,17 +18,22 @@ async def cmd_start(message: Message):
     )
 
     text = (
-        "\U0001f3b5 **Music Recognition Bot**\n\n"
-        "I'll help you find music! Send me any of these:\n\n"
-        "\U0001f3b5 **Song title or artist**\n"
-        "\U0001f524 **Lyrics from the song**\n"
-        "\U0001f399 **Voice message with music**\n"
-        "\U0001f4f9 **Video with music**\n"
-        "\U0001f50a **Audio recording**\n"
-        "\U0001f3a5 **Video message with music**\n"
-        "\U0001f517 **YouTube, Instagram, TikTok or other supported links**\n\n"
-        "I'll identify the song and give you useful information about it.\n\n"
-        "**Try it now \u2014 send me a voice message and I'll Shazam it for you!**"
+        "\U0001f44b Hi!\n"
+        "I'll help you find music \U0001f3b6 send me some of this:\n\n"
+        "\U0001f3b5 Song title or artist\n"
+        "\U0001f524 Lyrics from the song\n"
+        "\U0001f399 Voice message with music\n"
+        "\U0001f4f9 Video with music\n"
+        "\U0001f50a Audio recording\n"
+        "\U0001f3a5 Video message with music\n"
+        "\U0001f517 Link the video to Instagram, Tik-Tok, YouTube and other sites\n\n"
+        "Commands:\n"
+        "\u2022 /song \u2014 search by song title\n"
+        "\u2022 /artist \u2014 search for artist name\n"
+        "\u2022 /my \u2014 list your playlist\n"
+        "\u2022 /top \u2014 popular songs\n"
+        "\u2022 /settings \u2014 change settings\n"
+        "\u2022 /help \u2014 show help"
     )
 
     await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
