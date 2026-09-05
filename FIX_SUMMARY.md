@@ -1,5 +1,5 @@
 # Music Recognition Bot — Fix Summary
-**Stack:** Python 3.12, aiogram 3.12, aiosqlite, Shazamio (primary recognition), AudD API (fallback), iTunes Search API (search), Deezer API (previews), lyrics.ovh (lyrics), yt-dlp (full songs), mutagen (artwork embedding), ffmpeg.
+**Stack:** Python 3.12, aiogram 3.12, aiosqlite, AudD API (recognition), iTunes Search API (search), Deezer API (previews), lyrics.ovh (lyrics), yt-dlp (search + fallback), Cobalt API (YouTube proxy), mutagen (artwork embedding), ffmpeg.
 
 ---
 
@@ -73,9 +73,9 @@
 **File:** `bot/handlers/recognition.py`
 **Fix:** Audio download/send now runs as background task (`asyncio.create_task`) — result shows instantly, audio follows.
 
-### 18. Added Shazam recognition (free, fast)
+### 18. Added Shazam recognition (removed due to conflicts)
 **Files:** `bot/services/music_recognition.py`, `requirements.txt`
-**Fix:** Added `shazamio` as primary recognition (free, no API key, async). AudD used as fallback.
+**Fix:** Added then removed `shazamio` — pydantic version conflict with aiogram made it unusable on Railway. Using AudD only.
 
 ### 19. Bot username not auto-detected
 **Files:** `bot/config.py`, `main.py`
@@ -105,6 +105,21 @@
 **File:** `main.py`
 **Fix:** Moved `delete_webhook()` before `get_me()` to avoid conflict errors.
 
+### 26. YouTube bot detection on Railway
+**File:** `bot/services/music_recognition.py`
+**Fix:** Added Cobalt API proxy support. Bot searches YouTube for URL via yt-dlp, then sends URL to Cobalt for download. Falls back to direct yt-dlp if Cobalt unavailable.
+
+### 27. Cobalt API wrong request format
+**File:** `bot/services/music_recognition.py`
+**Fix:** Cobalt requires direct video URL, not search URL. Added yt-dlp search step to get video URL first.
+
+### 28. Bot menu showing old commands (/lang, /legal)
+**Fix:** Cleared bot commands via Telegram API `deleteMyCommands` + `setMyCommands`. Users may need to clear Telegram cache.
+
+### 29. Added debug logging for AudD API
+**File:** `bot/services/music_recognition.py`
+**Fix:** Added response status and body logging to diagnose recognition failures.
+
 ---
 
 ## New Files
@@ -112,17 +127,17 @@
 
 ## Config Changes
 - `bot/config.py`: Added `RECOGNITION_CLIP_SECONDS = 12`, `BOT_USERNAME`; removed `SONGLINK_API_KEY`
-- `.env.example`: Removed `SONGLINK_API_KEY`, added `BOT_USERNAME`
-- `requirements.txt`: Added `mutagen`, `requests`, `shazamio`
+- `.env.example`: Removed `SONGLINK_API_KEY`, added `BOT_USERNAME`, `COBALT_API_URL`
+- `requirements.txt`: Added `mutagen`, `requests`; removed `shazamio` (pydantic conflict)
 
 ---
 
 ## Architecture Notes
-- Recognition: Shazam (free, fast) → AudD (fallback, requires API key)
-- Audio: YouTube (full song, only source for complete tracks)
-- `download_full_song()` skips previews, goes straight to YouTube
+- Recognition: AudD API only (shazamio removed due to pydantic conflict)
+- Audio: Cobalt API proxy → yt-dlp fallback → Deezer/iTunes 30s preview
+- `download_full_song()`: searches YouTube via yt-dlp (extract_flat), sends URL to Cobalt
 - `download_preview()` used only for quick 30s previews when needed
-- Artwork embedded via mutagen (supports MP3 ID3 and MP4/M4A covr tags)
+- Artwork embedded via mutagen (supports MP3 ID3 and M4A/M4A covr tags)
 - Recognition result shown immediately; audio downloads in background task
 - Bot username auto-fetched from Telegram API on startup
 - Lyrics fetched from lyrics.ovh API with Google fallback
@@ -131,9 +146,9 @@
 ---
 
 ## Known Gaps
-- YouTube download ~15-20s (only source for full songs)
-- shazamio is unofficial (could break if Shazam changes API)
-- pydantic version conflict (shazamio needs 2.13+, aiogram needs <2.9)
+- YouTube download requires Cobalt proxy (Railway datacenter IPs get blocked)
+- Cobalt instance may also get blocked if on same datacenter IP
+- pydantic version conflict prevented shazamio usage
 - No live runtime testing
 - Credentials exposed in conversation — recommend rotating
 - Genius API branch needs `LYRICS_API_KEY`
