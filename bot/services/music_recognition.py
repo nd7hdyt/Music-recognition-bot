@@ -130,35 +130,57 @@ class MusicRecognitionService:
 
         if cobalt_url:
             try:
-                query = f"{artist} {title} official"
+                query = f"{artist} {title}"
                 search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
 
-                headers = {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                }
-                payload = {
-                    "url": search_url,
-                    "downloadMode": "audio",
-                    "audioFormat": "mp3",
+                import yt_dlp
+                ydl_opts = {
+                    "quiet": True,
+                    "no_warnings": True,
+                    "socket_timeout": 10,
+                    "noplaylist": True,
+                    "extract_flat": True,
                 }
 
-                timeout = aiohttp.ClientTimeout(total=30)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.post(f"{cobalt_url}/", json=payload, headers=headers) as resp:
-                        if resp.status == 200:
-                            result = await resp.json()
-                            download_url = result.get("url")
-                            if download_url:
-                                filepath = str(TEMP_DIR / f"cobalt_{uuid.uuid4().hex[:8]}.mp3")
-                                async with session.get(download_url) as dl_resp:
-                                    if dl_resp.status == 200:
-                                        with open(filepath, "wb") as f:
-                                            f.write(await dl_resp.read())
-                                        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                                            logger.info(f"Cobalt downloaded: {filepath}")
-                                            return filepath
-                        logger.warning(f"Cobalt failed: {resp.status}")
+                loop = asyncio.get_event_loop()
+
+                def _search():
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                        if info and "entries" in info:
+                            entry = info["entries"][0]
+                            return f"https://www.youtube.com/watch?v={entry['id']}"
+                    return None
+
+                video_url = await loop.run_in_executor(None, _search)
+
+                if video_url:
+                    headers = {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    }
+                    payload = {
+                        "url": video_url,
+                        "downloadMode": "audio",
+                        "audioFormat": "mp3",
+                    }
+
+                    timeout = aiohttp.ClientTimeout(total=30)
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
+                        async with session.post(f"{cobalt_url}/", json=payload, headers=headers) as resp:
+                            if resp.status == 200:
+                                result = await resp.json()
+                                download_url = result.get("url")
+                                if download_url:
+                                    filepath = str(TEMP_DIR / f"cobalt_{uuid.uuid4().hex[:8]}.mp3")
+                                    async with session.get(download_url) as dl_resp:
+                                        if dl_resp.status == 200:
+                                            with open(filepath, "wb") as f:
+                                                f.write(await dl_resp.read())
+                                            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                                                logger.info(f"Cobalt downloaded: {filepath}")
+                                                return filepath
+                            logger.warning(f"Cobalt failed: {resp.status} {await resp.text()}")
             except Exception as e:
                 logger.warning(f"Cobalt download failed: {e}")
 
