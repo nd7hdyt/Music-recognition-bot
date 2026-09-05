@@ -139,6 +139,23 @@ async def handle_media(message: Message):
                                     InlineKeyboardButton(text="\U0001f50d Search", switch_inline_query_current_chat=f"{song_data.artist} {song_data.title}"),
                                 ]
                             ])
+
+                            thumbnail = None
+                            if song_data.album_art:
+                                try:
+                                    import aiohttp
+                                    import tempfile
+                                    async with aiohttp.ClientSession() as session:
+                                        async with session.get(song_data.album_art) as resp:
+                                            if resp.status == 200:
+                                                img_data = await resp.read()
+                                                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                                                    tmp.write(img_data)
+                                                    tmp_path = tmp.name
+                                                thumbnail = FSInputFile(tmp_path)
+                                except Exception:
+                                    pass
+
                             await message.answer_audio(
                                 audio=audio,
                                 title=song_data.title,
@@ -146,7 +163,13 @@ async def handle_media(message: Message):
                                 caption=caption,
                                 reply_markup=kb,
                                 parse_mode="Markdown",
+                                thumbnail=thumbnail,
                             )
+
+                            if thumbnail:
+                                import os
+                                os.unlink(thumbnail.path)
+
                             await cleanup_file(filepath)
                     except Exception as e:
                         logger.error(f"Failed to send audio: {e}")
