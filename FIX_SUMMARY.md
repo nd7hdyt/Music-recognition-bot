@@ -120,6 +120,22 @@
 **File:** `bot/services/music_recognition.py`
 **Fix:** Added response status and body logging to diagnose recognition failures.
 
+### 30. /help command treated as song inquiry
+**File:** `bot/handlers/start.py`
+**Fix:** Added explicit `/help` command handler with `Command("help")` filter.
+
+### 31. Missing bot commands
+**Files:** `bot/handlers/start.py`, Telegram API
+**Fix:** Added `/lang`, `/results`, `/settings`, `/my`, `/top`, `/song`, `/artist` command handlers. Set commands via Telegram API `setMyCommands` for all scopes.
+
+### 32. /start message had inline keyboard
+**File:** `bot/handlers/start.py`
+**Fix:** Removed `reply_markup=main_menu()` from `/start` handler.
+
+### 33. /top missing caption and pagination
+**File:** `bot/handlers/admin.py`
+**Fix:** `/top` now shows numbered list with caption "🔥 Popular Songs" and uses `search_results_numbered` keyboard for pagination. Stores songs in `user_search_results` cache.
+
 ---
 
 ## New Files

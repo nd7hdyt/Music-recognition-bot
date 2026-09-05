@@ -46,12 +46,16 @@ async def cmd_top(message: Message):
         "songs": songs,
         "page": 0,
         "timestamp": time.time(),
+        "source": "top",
     }
 
     from bot.keyboards.main import search_results_numbered
     kb = search_results_numbered(songs, page=0, total=len(songs))
 
     text = "\U0001f525 **Popular Songs**\n\n"
+    for i, song in enumerate(songs[:8], 1):
+        text += f"{i}. **{song.title}** \u2014 {song.artist}\n"
+
     await status.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
 
@@ -76,21 +80,21 @@ async def callback_top_songs(callback: CallbackQuery):
         )
         return
 
-    text = "\U0001f525 **Popular Songs**\n\n"
-    for i, song in enumerate(songs, 1):
-        text += f"{i}. **{song.title}** \u2014 {song.artist}\n"
+    import time
+    from bot.handlers.search import user_search_results
+    user_search_results[callback.from_user.id] = {
+        "songs": songs,
+        "page": 0,
+        "timestamp": time.time(),
+        "source": "top",
+    }
 
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    buttons = []
-    for i, song in enumerate(songs):
-        buttons.append([
-            InlineKeyboardButton(
-                text=f"\U0001f3b5 {song.title}",
-                callback_data=f"top_select_{i}"
-            )
-        ])
-    buttons.append([InlineKeyboardButton(text="\u2190 Back to Menu", callback_data="main_menu")])
-    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    from bot.keyboards.main import search_results_numbered
+    kb = search_results_numbered(songs, page=0, total=len(songs))
+
+    text = "\U0001f525 **Popular Songs**\n\n"
+    for i, song in enumerate(songs[:8], 1):
+        text += f"{i}. **{song.title}** \u2014 {song.artist}\n"
 
     await status.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
