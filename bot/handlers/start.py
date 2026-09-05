@@ -36,7 +36,7 @@ async def cmd_start(message: Message):
         "\u2022 /help \u2014 show help"
     )
 
-    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
+    await message.answer(text, parse_mode="Markdown")
 
 
 @router.message(Command("help"))
