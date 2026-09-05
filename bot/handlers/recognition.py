@@ -440,17 +440,17 @@ def has_embedded_art(audio_path: str) -> bool:
         if audio_path.endswith(".m4a") or audio_path.endswith(".aac"):
             from mutagen.mp4 import MP4
             audio = MP4(audio_path)
-            return "covr" in audio
+            return "covr" in audio and len(audio["covr"]) > 0
         elif audio_path.endswith(".mp3"):
             from mutagen.mp3 import MP3
-            from mutagen.id3 import ID3
+            from mutagen.id3 import ID3, APIC
             audio = MP3(audio_path, ID3=ID3)
             if audio.tags:
                 for tag in audio.tags.values():
-                    if hasattr(tag, "type") and tag.type == 3:
+                    if isinstance(tag, APIC):
                         return True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Error checking embedded art: {e}")
     return False
 
 
