@@ -199,7 +199,7 @@ class MusicRecognitionService:
                 "postprocessors": [{
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "mp3",
-                    "preferredquality": "128",
+                    "preferredquality": "96",
                 }],
                 "outtmpl": str(TEMP_DIR / "yt_%(id)s.%(ext)s"),
                 "quiet": True,
