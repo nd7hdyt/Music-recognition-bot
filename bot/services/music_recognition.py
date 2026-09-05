@@ -131,7 +131,6 @@ class MusicRecognitionService:
         if cobalt_url:
             try:
                 query = f"{artist} {title}"
-                search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
 
                 import yt_dlp
                 ydl_opts = {
@@ -145,11 +144,18 @@ class MusicRecognitionService:
                 loop = asyncio.get_event_loop()
 
                 def _search():
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-                        if info and "entries" in info:
-                            entry = info["entries"][0]
-                            return f"https://www.youtube.com/watch?v={entry['id']}"
+                    try:
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                            if info and "entries" in info:
+                                entries = [e for e in info["entries"] if e]
+                                if entries:
+                                    entry = entries[0]
+                                    video_id = entry.get("id") or entry.get("url", "")
+                                    if video_id:
+                                        return f"https://www.youtube.com/watch?v={video_id}"
+                    except Exception as e:
+                        logger.warning(f"yt-dlp search failed: {e}")
                     return None
 
                 video_url = await loop.run_in_executor(None, _search)
