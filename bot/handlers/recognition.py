@@ -321,10 +321,13 @@ def format_song_result(song: SongData, chat_id: int = 0) -> str:
 
 
 async def get_album_art_fallback(title: str, artist: str) -> str:
+    import aiohttp
+    import urllib.parse
+
+    query = urllib.parse.quote(f"{artist} {title}")
+
+    # Try iTunes
     try:
-        import aiohttp
-        import urllib.parse
-        query = urllib.parse.quote(f"{artist} {title}")
         url = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=1"
         timeout = aiohttp.ClientTimeout(total=8)
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -334,9 +337,43 @@ async def get_album_art_fallback(title: str, artist: str) -> str:
                     results = data.get("results", [])
                     if results:
                         art = results[0].get("artworkUrl100", "")
-                        return art.replace("100x100", "600x600")
+                        if art:
+                            return art.replace("100x100", "600x600")
     except Exception:
         pass
+
+    # Try YouTube thumbnail via search
+    try:
+        import yt_dlp
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "socket_timeout": 10,
+            "noplaylist": True,
+            "extract_flat": True,
+        }
+
+        def _search():
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(f"ytsearch1:{artist} {title}", download=False)
+                    if info and "entries" in info:
+                        entries = [e for e in info["entries"] if e]
+                        if entries:
+                            video_id = entries[0].get("id") or entries[0].get("url", "")
+                            if video_id:
+                                return f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+            except Exception:
+                pass
+            return None
+
+        loop = asyncio.get_event_loop()
+        thumb = await loop.run_in_executor(None, _search)
+        if thumb:
+            return thumb
+    except Exception:
+        pass
+
     return ""
 
 
