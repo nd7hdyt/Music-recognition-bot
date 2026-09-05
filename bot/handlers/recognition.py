@@ -470,11 +470,14 @@ def embed_artwork(audio_path: str, art_url: str):
         from mutagen.mp4 import MP4
         from mutagen.id3 import ID3, APIC
 
+        logger.info(f"Embedding artwork from: {art_url[:80]}")
         response = requests.get(art_url, timeout=10)
         if response.status_code != 200:
+            logger.warning(f"Failed to fetch artwork: {response.status_code}")
             return
 
         art_data = response.content
+        logger.info(f"Artwork size: {len(art_data)} bytes")
 
         if audio_path.endswith(".m4a") or audio_path.endswith(".aac"):
             audio = MP4(audio_path)
@@ -494,5 +497,7 @@ def embed_artwork(audio_path: str, art_url: str):
             ))
             audio.save()
             logger.info("Artwork embedded in MP3")
+        else:
+            logger.warning(f"Unsupported audio format: {audio_path}")
     except Exception as e:
         logger.warning(f"Failed to embed artwork: {e}")
