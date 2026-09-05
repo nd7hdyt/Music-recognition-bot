@@ -144,6 +144,18 @@
 **File:** `bot/handlers/recognition.py`
 **Fix:** Added `get_album_art_fallback()` with chain: AudD → iTunes → Spotify (embed) → Deezer → YouTube thumbnail. Added `has_embedded_art()` to skip embedding if artwork exists.
 
+### 36. Telegram not showing album art
+**File:** `bot/handlers/recognition.py`
+**Fix:** Download thumbnail image and pass as `InputFile` to `thumbnail` parameter in `answer_audio()`. Telegram ignores embedded MP3 artwork but displays API thumbnails.
+
+### 37. YouTube audio too large for Telegram
+**File:** `bot/services/music_recognition.py`
+**Fix:** Reduced YouTube audio quality from 128kbps to 96kbps to stay under Telegram's 50MB limit.
+
+### 38. settings_keyboard() missing argument
+**File:** `bot/handlers/start.py`
+**Fix:** Fixed `/settings` command to pass user to `settings_keyboard()`.
+
 ---
 
 ## New Files

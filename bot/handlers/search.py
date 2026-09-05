@@ -285,6 +285,23 @@ async def callback_song_select(callback: CallbackQuery):
                         InlineKeyboardButton(text="\U0001f50d Search", switch_inline_query_current_chat=f"{song.artist} {song.title}"),
                     ]
                 ])
+
+                thumbnail = None
+                if song.album_art:
+                    try:
+                        import aiohttp
+                        import tempfile
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(song.album_art) as resp:
+                                if resp.status == 200:
+                                    img_data = await resp.read()
+                                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                                        tmp.write(img_data)
+                                        tmp_path = tmp.name
+                                    thumbnail = FSInputFile(tmp_path)
+                    except Exception:
+                        pass
+
                 await callback.message.answer_audio(
                     audio=audio,
                     title=song.title,
@@ -292,7 +309,13 @@ async def callback_song_select(callback: CallbackQuery):
                     caption=caption,
                     reply_markup=kb,
                     parse_mode="Markdown",
+                    thumbnail=thumbnail,
                 )
+
+                if thumbnail:
+                    import os
+                    os.unlink(thumbnail.path)
+
                 await cleanup_file(filepath)
         except Exception as e:
             logger.error(f"Failed to send search audio: {e}")
