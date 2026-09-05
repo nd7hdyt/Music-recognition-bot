@@ -142,7 +142,7 @@
 
 ### 35. Missing album art fallback
 **File:** `bot/handlers/recognition.py`
-**Fix:** Added `get_album_art_fallback()` that tries iTunes then YouTube thumbnail for album art. `send_recognition_result()` now uses fallback before formatting.
+**Fix:** Added `get_album_art_fallback()` that tries iTunes then YouTube thumbnail for album art. Added `has_embedded_art()` to check if audio already has artwork before embedding. `embed_artwork()` now skips if artwork exists.
 
 ---
 
