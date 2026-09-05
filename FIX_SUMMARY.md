@@ -136,6 +136,10 @@
 **File:** `bot/handlers/admin.py`
 **Fix:** `/top` now shows numbered list with caption "🔥 Popular Songs" and uses `search_results_numbered` keyboard for pagination. Stores songs in `user_search_results` cache.
 
+### 34. /top limited to 10 hardcoded results
+**Files:** `bot/services/music_search.py`, `bot/services/metadata.py`
+**Fix:** `get_trending()` now fetches from Deezer Charts + iTunes, deduplicates, sorts by popularity, returns top 30. Added `popularity` field to `SongData`.
+
 ---
 
 ## New Files

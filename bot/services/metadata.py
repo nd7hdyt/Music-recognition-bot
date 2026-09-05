@@ -15,6 +15,7 @@ class SongData:
     album_art: str = ""
     lyrics: str = ""
     provider: str = ""
+    popularity: int = 0
 
     @property
     def duration_str(self) -> str:
