@@ -326,7 +326,7 @@ async def get_album_art_fallback(title: str, artist: str) -> str:
 
     query = urllib.parse.quote(f"{artist} {title}")
 
-    # Try iTunes
+    # 1. Try iTunes
     try:
         url = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=1"
         timeout = aiohttp.ClientTimeout(total=8)
@@ -342,7 +342,39 @@ async def get_album_art_fallback(title: str, artist: str) -> str:
     except Exception:
         pass
 
-    # Try YouTube thumbnail via search
+    # 2. Try Spotify (embed API)
+    try:
+        search_url = f"https://open.spotify.com/search/{query}"
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(search_url) as resp:
+                if resp.status == 200:
+                    text = await resp.text()
+                    import re
+                    match = re.search(r'<meta property="og:image" content="([^"]+)"', text)
+                    if match:
+                        return match.group(1)
+    except Exception:
+        pass
+
+    # 3. Try Deezer
+    try:
+        url = f"https://api.deezer.com/search?q={query}&limit=1"
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    tracks = data.get("data", [])
+                    if tracks:
+                        album = tracks[0].get("album", {})
+                        art = album.get("cover_big", "")
+                        if art:
+                            return art
+    except Exception:
+        pass
+
+    # 4. Try YouTube thumbnail
     try:
         import yt_dlp
         ydl_opts = {
