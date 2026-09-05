@@ -313,11 +313,39 @@ async def callback_lyrics(callback: CallbackQuery):
 
 
 def format_song_result(song: SongData, chat_id: int = 0) -> str:
-    link = song.album_art if song.album_art else f"https://t.me/{config.BOT_USERNAME}"
+    if song.album_art and "t.me" not in song.album_art:
+        link = song.album_art
+    else:
+        link = f"https://t.me/{config.BOT_USERNAME}"
     return f"<code>{song.title} — {song.artist}</code>\n\n<a href=\"{link}\">PD Music Bot</a>"
 
 
+async def get_album_art_fallback(title: str, artist: str) -> str:
+    try:
+        import aiohttp
+        import urllib.parse
+        query = urllib.parse.quote(f"{artist} {title}")
+        url = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=1"
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    results = data.get("results", [])
+                    if results:
+                        art = results[0].get("artworkUrl100", "")
+                        return art.replace("100x100", "600x600")
+    except Exception:
+        pass
+    return ""
+
+
 async def send_recognition_result(message, song_data, song_id):
+    if not song_data.album_art or "t.me" in song_data.album_art:
+        fallback = await get_album_art_fallback(song_data.title, song_data.artist)
+        if fallback:
+            song_data.album_art = fallback
+
     text = format_song_result(song_data, message.chat.id)
     kb = recognize_result(song_data, message.from_user.id, song_id)
     await message.answer(text, reply_markup=kb, parse_mode="HTML")

@@ -140,6 +140,10 @@
 **Files:** `bot/services/music_search.py`, `bot/services/metadata.py`
 **Fix:** `get_trending()` now fetches from Deezer Charts + iTunes, deduplicates, sorts by popularity, returns top 30. Added `popularity` field to `SongData`.
 
+### 35. Missing album art fallback
+**File:** `bot/handlers/recognition.py`
+**Fix:** Added `get_album_art_fallback()` that searches iTunes for album art when primary source fails. `send_recognition_result()` now uses iTunes fallback before formatting.
+
 ---
 
 ## New Files
