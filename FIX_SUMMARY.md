@@ -156,24 +156,30 @@
 **File:** `bot/handlers/start.py`
 **Fix:** Fixed `/settings` command to pass user to `settings_keyboard()`.
 
+### 39. Bot conflict with old instance
+**File:** `main.py`
+**Fix:** Switched from polling to webhook mode. Webhook replaces any existing polling connection. Set `WEBHOOK_URL` environment variable to your Railway app URL.
+
 ---
 
 ## New Files
 - `bot/utils/network.py` — RetryAiohttpSession for network resilience
 
 ## Config Changes
-- `bot/config.py`: Added `RECOGNITION_CLIP_SECONDS = 12`, `BOT_USERNAME`; removed `SONGLINK_API_KEY`
-- `.env.example`: Removed `SONGLINK_API_KEY`, added `BOT_USERNAME`, `COBALT_API_URL`
+- `bot/config.py`: Added `RECOGNITION_CLIP_SECONDS = 12`, `BOT_USERNAME`, `WEBHOOK_URL`; removed `SONGLINK_API_KEY`
+- `.env.example`: Removed `SONGLINK_API_KEY`, added `BOT_USERNAME`, `COBALT_API_URL`, `WEBHOOK_URL`
 - `requirements.txt`: Added `mutagen`, `requests`; removed `shazamio` (pydantic conflict)
 
 ---
 
 ## Architecture Notes
+- **Webhook mode**: Bot runs as web server, Telegram sends updates to webhook URL
 - Recognition: AudD API only (shazamio removed due to pydantic conflict)
 - Audio: Cobalt API proxy → yt-dlp fallback → Deezer/iTunes 30s preview
 - `download_full_song()`: searches YouTube via yt-dlp (extract_flat), sends URL to Cobalt
 - `download_preview()` used only for quick 30s previews when needed
 - Artwork embedded via mutagen (supports MP3 ID3 and M4A/M4A covr tags)
+- Album art thumbnail downloaded as InputFile for Telegram display
 - Recognition result shown immediately; audio downloads in background task
 - Bot username auto-fetched from Telegram API on startup
 - Lyrics fetched from lyrics.ovh API with Google fallback

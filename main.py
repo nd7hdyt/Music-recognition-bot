@@ -1,5 +1,4 @@
 import asyncio
-import signal
 import sys
 from pathlib import Path
 
@@ -7,8 +6,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiohttp import web
 
-from bot.config import BOT_TOKEN, BOT_USERNAME
+from bot.config import BOT_TOKEN, BOT_USERNAME, WEBHOOK_URL
 import bot.config as config
 from bot.database.database import init_db, close_db
 from bot.handlers import start, recognition, search, artist, playlist, settings, help, admin
@@ -18,19 +18,12 @@ from bot.utils.network import RetryAiohttpSession
 
 logger = get_logger(__name__)
 
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_SECRET = "music_bot_webhook_secret_2026"
 
-async def main():
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN not set! Please configure your .env file.")
-        sys.exit(1)
-
+async def on_startup(bot: Bot, dp: Dispatcher, app: web.Application):
     await init_db()
     logger.info("Database initialized")
-
-    session = RetryAiohttpSession(max_retries=3, backoff_seconds=1.0)
-    bot = Bot(token=BOT_TOKEN, session=session, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
-
-    await bot.delete_webhook(drop_pending_updates=True)
 
     if not BOT_USERNAME:
         me = await bot.get_me()
@@ -38,6 +31,52 @@ async def main():
         logger.info(f"Bot username: @{me.username}")
     else:
         logger.info(f"Bot username: @{BOT_USERNAME}")
+
+    if WEBHOOK_URL:
+        await bot.set_webhook(
+            url=f"{WEBHOOK_URL}{WEBHOOK_PATH}",
+            secret_token=WEBHOOK_SECRET,
+            drop_pending_updates=True,
+        )
+        logger.info(f"Webhook set to: {WEBHOOK_URL}{WEBHOOK_PATH}")
+    else:
+        logger.warning("WEBHOOK_URL not set, falling back to polling")
+        dp["use_polling"] = True
+
+async def on_shutdown(bot: Bot, app: web.Application):
+    await bot.delete_webhook(drop_pending_updates=True)
+    logger.info("Webhook deleted")
+    await close_db()
+    await bot.session.close()
+    logger.info("Bot stopped")
+
+async def webhook_handler(request: web.Request) -> web.Response:
+    bot: Bot = request.app["bot"]
+    dp: Dispatcher = request.app["dp"]
+
+    secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+    if secret_token != WEBHOOK_SECRET:
+        return web.Response(status=403)
+
+    update = await request.json()
+    await dp.feed_update(bot, update)
+    return web.Response()
+
+async def health_handler(request: web.Request) -> web.Response:
+    return web.Response(text="OK")
+
+async def scheduled_cleanup():
+    while True:
+        await asyncio.sleep(3600)
+        await cleanup_temp_files(max_age_seconds=3600)
+
+async def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN not set! Please configure your .env file.")
+        sys.exit(1)
+
+    session = RetryAiohttpSession(max_retries=3, backoff_seconds=1.0)
+    bot = Bot(token=BOT_TOKEN, session=session, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
 
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
@@ -53,22 +92,29 @@ async def main():
 
     logger.info("All handlers registered")
 
-    async def scheduled_cleanup():
-        while True:
-            await asyncio.sleep(3600)
-            await cleanup_temp_files(max_age_seconds=3600)
+    app = web.Application()
+    app["bot"] = bot
+    app["dp"] = dp
+    app.on_startup.append(lambda app: on_startup(bot, dp, app))
+    app.on_shutdown.append(lambda app: on_shutdown(bot, app))
+    app.router.add_post(WEBHOOK_PATH, webhook_handler)
+    app.router.add_get("/health", health_handler)
 
     cleanup_task = asyncio.create_task(scheduled_cleanup())
 
+    import os
+    port = int(os.getenv("PORT", 8080))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logger.info(f"Webhook server started on port {port}")
+
     try:
-        logger.info("Bot starting...")
-        await dp.start_polling(bot)
+        await asyncio.Event().wait()
     finally:
         cleanup_task.cancel()
-        await close_db()
-        await bot.session.close()
-        logger.info("Bot stopped")
-
+        await runner.cleanup()
 
 if __name__ == "__main__":
     try:
