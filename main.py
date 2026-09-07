@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Update
 from aiohttp import web
 
 from bot.config import BOT_TOKEN, BOT_USERNAME, WEBHOOK_URL
@@ -60,8 +61,10 @@ async def webhook_handler(request: web.Request) -> web.Response:
         return web.Response(status=403)
 
     try:
-        update = await request.json()
-        logger.info(f"Webhook received update: {update.get('update_id', '?')}")
+        data = await request.json()
+        update = Update.model_validate(data)
+        update.bot = bot
+        logger.info(f"Webhook received update: {update.update_id}")
         await dp.feed_update(bot, update)
     except Exception as e:
         logger.error(f"Webhook error: {e}", exc_info=True)
