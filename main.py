@@ -56,10 +56,16 @@ async def webhook_handler(request: web.Request) -> web.Response:
 
     secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
     if secret_token != WEBHOOK_SECRET:
+        logger.warning("Invalid secret token")
         return web.Response(status=403)
 
-    update = await request.json()
-    await dp.feed_update(bot, update)
+    try:
+        update = await request.json()
+        logger.info(f"Webhook received update: {update.get('update_id', '?')}")
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        logger.error(f"Webhook error: {e}", exc_info=True)
+
     return web.Response()
 
 async def health_handler(request: web.Request) -> web.Response:
@@ -99,16 +105,19 @@ async def main():
     app.on_shutdown.append(lambda app: on_shutdown(bot, app))
     app.router.add_post(WEBHOOK_PATH, webhook_handler)
     app.router.add_get("/health", health_handler)
+    app.router.add_get("/", health_handler)
 
     cleanup_task = asyncio.create_task(scheduled_cleanup())
 
     import os
     port = int(os.getenv("PORT", 8080))
+    logger.info(f"Using port: {port}")
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     logger.info(f"Webhook server started on port {port}")
+    logger.info(f"Webhook URL: {WEBHOOK_URL}{WEBHOOK_PATH}")
 
     try:
         await asyncio.Event().wait()
