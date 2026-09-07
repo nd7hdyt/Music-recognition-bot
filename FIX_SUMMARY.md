@@ -158,7 +158,11 @@
 
 ### 39. Bot conflict with old instance
 **File:** `main.py`
-**Fix:** Switched from polling to webhook mode. Webhook replaces any existing polling connection. Set `WEBHOOK_URL` environment variable to your Railway app URL.
+**Fix:** Switched from polling to webhook mode. Webhook replaces any existing polling connection. Set `WEBHOOK_URL` environment variable to your Railway service URL.
+
+### 40. Webhook 404/500 errors
+**File:** `main.py`
+**Fix:** Proper webhook implementation: parse JSON into aiogram `Update` object, handle frozen pydantic model, use service-level Railway domain (not project domain).
 
 ---
 
