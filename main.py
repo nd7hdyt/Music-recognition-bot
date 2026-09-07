@@ -63,7 +63,6 @@ async def webhook_handler(request: web.Request) -> web.Response:
     try:
         data = await request.json()
         update = Update.model_validate(data)
-        update.bot = bot
         logger.info(f"Webhook received update: {update.update_id}")
         await dp.feed_update(bot, update)
     except Exception as e:
